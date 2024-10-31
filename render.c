@@ -28,7 +28,8 @@ void calc_widths(struct menu *menu) {
 	menu->right_arrow = text_width(cairo, menu->font, ">") + 2 * menu->padding;
 
 	// Calculate item widths and input area width
-	for (struct item *item = menu->items; item; item = item->next) {
+	for (size_t i = 0; i < menu->item_count; i++) {
+		struct item *item = &menu->items[i];
 		item->width = text_width(cairo, menu->font, item->text);
 		if (item->width > menu->inputw) {
 			menu->inputw = item->width;

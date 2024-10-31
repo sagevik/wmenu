@@ -13,7 +13,6 @@ typedef void (*menu_callback)(struct menu *menu, char *text, bool exit);
 struct item {
 	char *text;
 	int width;
-	struct item *next;       // traverses all items
 	struct item *prev_match; // previous matching item
 	struct item *next_match; // next matching item
 	struct page *page;       // the page holding this item
@@ -64,8 +63,8 @@ struct menu {
 	char input[BUFSIZ];
 	size_t cursor;
 
-	struct item *items;       // list of all items
-	struct item *lastitem;    // last item in the list
+	struct item *items;       // array of all items
+	size_t item_count;
 	struct item *matches;     // list of matching items
 	struct item *matches_end; // last matching item
 	struct item *sel;         // selected item
@@ -79,7 +78,8 @@ struct menu {
 struct menu *menu_create(menu_callback callback);
 void menu_destroy(struct menu *menu);
 void menu_getopts(struct menu *menu, int argc, char *argv[]);
-void menu_add_item(struct menu *menu, char *text, bool sort);
+void menu_add_item(struct menu *menu, char *text);
+void menu_sort_and_deduplicate(struct menu *menu);
 void menu_render_items(struct menu *menu);
 void menu_paste(struct menu *menu, const char *text, ssize_t len);
 void menu_keypress(struct menu *menu, enum wl_keyboard_key_state key_state,

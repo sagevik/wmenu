@@ -20,10 +20,11 @@ static void read_items(struct menu *menu) {
 			if (ent->d_name[0] == '.') {
 				continue;
 			}
-			menu_add_item(menu, strdup(ent->d_name), true);
+			menu_add_item(menu, strdup(ent->d_name));
 		}
 		closedir(dir);
 	}
+	menu_sort_and_deduplicate(menu);
 	free(path);
 }
 

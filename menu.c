@@ -1,4 +1,5 @@
 #define _POSIX_C_SOURCE 200809L
+#include <assert.h>
 #include <ctype.h>
 #include <poll.h>
 #include <stdbool.h>
@@ -45,18 +46,12 @@ static void free_pages(struct menu *menu) {
 	}
 }
 
-static void free_item(struct item *item) {
-	free(item->text);
-	free(item);
-}
-
 static void free_items(struct menu *menu) {
-	struct item *next = menu->items;
-	while (next) {
-		struct item *item = next;
-		next = item->next;
-		free_item(item);
+	for (size_t i = 0; i < menu->item_count; i++) {
+		struct item *item = &menu->items[i];
+		free(item->text);
 	}
+	free(menu->items);
 }
 
 // Destroys the menu, freeing memory associated with it.
@@ -167,34 +162,44 @@ void menu_getopts(struct menu *menu, int argc, char *argv[]) {
 }
 
 // Add an item to the menu.
-void menu_add_item(struct menu *menu, char *text, bool sort) {
-	struct item *new = calloc(1, sizeof(struct item));
-	if (!new) {
-		return;
+void menu_add_item(struct menu *menu, char *text) {
+	if ((menu->item_count & (menu->item_count - 1)) == 0) {
+		size_t alloc_size = menu->item_count ? 2 * menu->item_count : 1;
+		void *new_array = realloc(menu->items, sizeof(struct item) * alloc_size);
+		if (!new_array) {
+			fprintf(stderr, "could not realloc %zu bytes", sizeof(struct item) * alloc_size);
+			exit(EXIT_FAILURE);
+		}
+		menu->items = new_array;
 	}
+
+	struct item *new = &menu->items[menu->item_count];
 	new->text = text;
 
-	if (sort) {
-		for (struct item **item = &menu->items; *item; item = &(*item)->next) {
-			int result = strcmp(new->text, (*item)->text);
-			if (result == 0) {
-				free_item(new);
-				return;
-			}
-			if (result < 0) {
-				new->next = *item;
-				*item = new;
-				return;
-			}
+	menu->item_count++;
+}
+
+static int compare_items(const void *a, const void *b) {
+	const struct item *item_a = a;
+	const struct item *item_b = b;
+	return strcmp(item_a->text, item_b->text);
+}
+
+void menu_sort_and_deduplicate(struct menu *menu) {
+	size_t j = 1;
+	size_t i;
+
+	qsort(menu->items, menu->item_count, sizeof(*menu->items), compare_items);
+
+	for (i = 1; i < menu->item_count; i++) {
+		if (strcmp(menu->items[i].text, menu->items[j - 1].text) == 0) {
+			free(menu->items[i].text);
+		} else {
+			menu->items[j] = menu->items[i];
+			j++;
 		}
 	}
-
-	if (menu->lastitem) {
-		menu->lastitem->next = new;
-	} else {
-		menu->items = new;
-	}
-	menu->lastitem = new;
+	menu->item_count = j;
 }
 
 static void append_page(struct page *page, struct page **first, struct page **last) {
@@ -291,6 +296,7 @@ static void match_items(struct menu *menu) {
 	char buf[sizeof menu->input], *tok;
 	char **tokv = NULL;
 	int i, tokc = 0;
+	size_t k;
 	size_t tok_len;
 	menu->matches = NULL;
 	menu->matches_end = NULL;
@@ -314,8 +320,8 @@ static void match_items(struct menu *menu) {
 	}
 	tok_len = tokc ? strlen(tokv[0]) : 0;
 
-	struct item *item;
-	for (item = menu->items; item; item = item->next) {
+	for (k = 0; k < menu->item_count; k++) {
+		struct item *item = &menu->items[k];
 		for (i = 0; i < tokc; i++) {
 			if (!fstrstr(menu, item->text, tokv[i])) {
 				/* token does not match */
