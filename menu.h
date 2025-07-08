@@ -39,6 +39,8 @@ typedef enum e_position POSITION;
 struct menu {
 	// Whether the menu appears at the bottom of the screen
 	POSITION position;
+	// The minimum width of the menu (relevant for center position)
+	int minwidth;
 	// The function used to match menu items
 	int (*strncmp)(const char *, const char *, size_t);
 	// Whether the input is a password
