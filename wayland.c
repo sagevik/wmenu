@@ -463,8 +463,25 @@ int menu_run(struct menu *menu) {
 			break;
 	}
 
+	calc_widths(menu);
+
+	if (menu->position == POSITION_CENTER) {
+		int maxItemWidth = 0;
+		for (size_t i = 0; i < menu->item_count; i++) {
+			struct item *item = &menu->items[i];
+			if (item->width > maxItemWidth) {
+				maxItemWidth = item->width;
+			}
+		}
+		menu->width = menu->promptw + menu->inputw + maxItemWidth + 
+			menu->left_arrow + menu->right_arrow + 2 * menu->padding;
+		zwlr_layer_surface_v1_set_margin(layer_surface, -1, -1, -1, -1);
+		zwlr_layer_surface_v1_set_size(layer_surface, menu->width, menu->height);
+	} else {
+		zwlr_layer_surface_v1_set_size(layer_surface, 0, menu->height);
+	}
+
 	zwlr_layer_surface_v1_set_anchor(layer_surface, anchor);
-	zwlr_layer_surface_v1_set_size(layer_surface, 0, menu->height);
 	zwlr_layer_surface_v1_set_exclusive_zone(layer_surface, -1);
 	zwlr_layer_surface_v1_set_keyboard_interactivity(layer_surface, true);
 	zwlr_layer_surface_v1_add_listener(layer_surface, &layer_surface_listener, context);
