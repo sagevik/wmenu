@@ -448,10 +448,19 @@ int menu_run(struct menu *menu) {
 
 	uint32_t anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
 		ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
-	if (menu->bottom) {
-		anchor |= ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
-	} else {
-		anchor |= ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP;
+
+	switch (menu->position) {
+
+		case POSITION_BOTTOM:
+			anchor |= ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
+			break;
+		case POSITION_TOP: 
+			anchor |= ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP;
+			break;
+		case POSITION_CENTER:
+			anchor |= ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
+			// we will handle this in rendering.
+			break;
 	}
 
 	zwlr_layer_surface_v1_set_anchor(layer_surface, anchor);
